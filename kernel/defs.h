@@ -134,6 +134,7 @@ char*           safestrcpy(char*, const char*, int);
 int             strlen(const char*);
 int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
+void            strcat(char*s1,char*s2,int len);
 
 // syscall.c
 int             argint(int, int*);
@@ -178,6 +179,7 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+void            vmprint(pagetable_t rootpage);
 
 // plic.c
 void            plicinit(void);

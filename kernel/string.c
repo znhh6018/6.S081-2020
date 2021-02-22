@@ -101,4 +101,14 @@ strlen(const char *s)
     ;
   return n;
 }
+//s2 behind s1
+void strcat(char*s1,char*s2,int len){
+  char *p1,*p2;
+  p2 = s2;
+  p1 = s1 + strlen(s1);
+  while(len--){
+    *p1++ = *p2++;
+  }
+  *p1 = 0;
+}
 
