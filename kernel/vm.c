@@ -46,7 +46,7 @@ kvminit()
   // the highest virtual address in the kernel.
   kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 }
-void
+int
 uk_kvminit(pagetable_t uk_pagetable)
 {
   if (uk_vmmap(uk_pagetable,UART0, UART0, PGSIZE, PTE_R | PTE_W) == -1) {
@@ -148,7 +148,7 @@ int
 uk_vmmap(pagetable_t uk_pagetable,uint64 va, uint64 pa, uint64 sz, int perm) {
   //mappages return -1 means ,there is not enough physical memory for page table
   if (mappages(uk_pagetable, va, sz, pa, perm) != 0) {
-    uvmfree(pagetable, 0);
+    uvmfree(uk_pagetable, 0);
     return -1;
   }
   return 0;

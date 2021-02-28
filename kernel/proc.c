@@ -184,7 +184,7 @@ uk_proc_pagetable(struct proc *p) {
     uvmfree(uk_pagetable, 0);
     return 0;
   }
-  return pagetable;
+  return uk_pagetable;
 }
 // Create a user page table for a given process,
 // with no user memory, but with trampoline pages.
