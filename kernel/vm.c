@@ -46,6 +46,29 @@ kvminit()
   // the highest virtual address in the kernel.
   kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 }
+void
+uk_kvminit(pagetable_t uk_pagetable)
+{
+  if (uk_vmmap(uk_pagetable,UART0, UART0, PGSIZE, PTE_R | PTE_W) == -1) {
+    return -1;
+  }
+  if (uk_vmmap(uk_pagetable,VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W) == -1) {
+    return -1;
+  }
+  if (uk_vmmap(uk_pagetable,PLIC, PLIC, 0x400000, PTE_R | PTE_W) == -1) {
+    return -1;
+  }
+  if (uk_vmmap(uk_pagetable,KERNBASE, KERNBASE, (uint64)etext - KERNBASE, PTE_R | PTE_X) == -1) {
+    return -1;
+  }
+  if (uk_vmmap(uk_pagetable,(uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W) == -1) {
+    return -1;
+  }
+  if (uk_vmmap(uk_pagetable,TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X) == -1) {
+    return -1;
+  }
+  return 0;
+}
 
 // Switch h/w page table register to the kernel's page table,
 // and enable paging.
@@ -119,6 +142,16 @@ kvmmap(uint64 va, uint64 pa, uint64 sz, int perm)
 {
   if(mappages(kernel_pagetable, va, sz, pa, perm) != 0)
     panic("kvmmap");
+}
+
+int
+uk_vmmap(pagetable_t uk_pagetable,uint64 va, uint64 pa, uint64 sz, int perm) {
+  //mappages return -1 means ,there is not enough physical memory for page table
+  if (mappages(uk_pagetable, va, sz, pa, perm) != 0) {
+    uvmfree(pagetable, 0);
+    return -1;
+  }
+  return 0;
 }
 
 // translate a kernel virtual address to
@@ -295,10 +328,21 @@ void
 uvmfree(pagetable_t pagetable, uint64 sz)
 {
   if(sz > 0)
-    uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 1);
+    uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 1); //Remove npages of mappings starting from va
+  freewalk(pagetable);//set all the ptes zero,free three-tree's page table physical memory
+}
+//
+void
+uk_uvmfree(pagetable_t pagetable)
+{
+  uvmunmap(pagetable, UART0, 1, 0);
+  uvmunmap(pagetable, VIRTIO0, 1, 0);
+  uvmunmap(pagetable, PLIC, 0x400000 / PGSIZE, 0);
+  uvmunmap(pagetable, KERNBASE, PGROUNDUP((uint64)etext - KERNBASE) / PGSIZE, 0);
+  uvmunmap(pagetable, (uint64)etext, PGROUNDUP(PHYSTOP - (uint64)etext) / PGSIZE, 0);
+  uvmunmap(pagetable, TRAMPOLINE, PGROUNDUP((uint64)trampoline) / PGSIZE, 0);
   freewalk(pagetable);
 }
-
 // Given a parent process's page table, copy
 // its memory into a child's page table.
 // Copies both the page table and the

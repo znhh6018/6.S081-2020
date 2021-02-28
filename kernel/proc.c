@@ -115,7 +115,13 @@ found:
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
-  if(p->pagetable == 0){
+  if (p->pagetable == 0) {
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  p->uk_pagetable = uk_proc_pagetable(p);
+  if (p->uk_pagetable == 0) {
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -141,6 +147,8 @@ freeproc(struct proc *p)
   p->trapframe = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+  if (p->uk_pagetable)
+    proc_free_kernelpagetable(p->uk_pagetable,p->kstack);
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -152,6 +160,32 @@ freeproc(struct proc *p)
   p->state = UNUSED;
 }
 
+pagetable_t
+uk_proc_pagetable(struct proc *p) {
+  pagetable_t uk_pagetable;
+
+  // An empty page table.
+  uk_pagetable = uvmcreate();
+  if (uk_pagetable == 0)
+    return 0;
+  //map in the kernel
+  if (uk_kvminit(uk_pagetable) == -1) {
+    return 0;
+  }
+  // map the trapframe just below TRAMPOLINE, for trampoline.S.
+  if (mappages(uk_pagetable, TRAPFRAME, PGSIZE,
+    (uint64)(p->trapframe), PTE_R | PTE_W) < 0) {
+    uvmfree(uk_pagetable, 0);
+    return 0;
+  }
+  //map the kernel stack
+  if (mappages(uk_pagetable, p->kstack, PGSIZE,
+    kvmpa(p->kstack), PTE_R | PTE_W) < 0) {
+    uvmfree(uk_pagetable, 0);
+    return 0;
+  }
+  return pagetable;
+}
 // Create a user page table for a given process,
 // with no user memory, but with trampoline pages.
 pagetable_t
@@ -173,7 +207,6 @@ proc_pagetable(struct proc *p)
     uvmfree(pagetable, 0);
     return 0;
   }
-
   // map the trapframe just below TRAMPOLINE, for trampoline.S.
   if(mappages(pagetable, TRAPFRAME, PGSIZE,
               (uint64)(p->trapframe), PTE_R | PTE_W) < 0){
@@ -185,7 +218,7 @@ proc_pagetable(struct proc *p)
   return pagetable;
 }
 
-// Free a process's page table, and free the
+// Free a process's page table, and not free the
 // physical memory it refers to.
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
@@ -193,6 +226,15 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
+}
+// Free a process's kernel page table, and free the
+// physical memory it refers to.
+void
+proc_free_kernelpagetable(pagetable_t pagetable,uint64 kstack)
+{
+  uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  uvmunmap(pagetable, kstack, 1, 0);
+  uk_uvmfree(pagetable);
 }
 
 // a user program that calls exec("/init")
@@ -475,6 +517,10 @@ scheduler(void)
         c->proc = p;
         swtch(&c->context, &p->context);
 
+        //change pagetable
+        w_satp(MAKE_SATP(p->uk_pagetable));
+        sfence_vma();
+
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
@@ -485,6 +531,9 @@ scheduler(void)
     }
 #if !defined (LAB_FS)
     if(found == 0) {
+
+      kvminithart();//**************************
+
       intr_on();
       asm volatile("wfi");
     }
