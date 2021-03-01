@@ -340,7 +340,7 @@ uk_uvmfree(pagetable_t pagetable)
   uvmunmap(pagetable, PLIC, 0x400000 / PGSIZE, 0);
   uvmunmap(pagetable, KERNBASE, PGROUNDUP((uint64)etext - KERNBASE) / PGSIZE, 0);
   uvmunmap(pagetable, (uint64)etext, PGROUNDUP(PHYSTOP - (uint64)etext) / PGSIZE, 0);
-  uvmunmap(pagetable, TRAMPOLINE, PGROUNDUP((uint64)trampoline) / PGSIZE, 0);
+  uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   freewalk(pagetable);
 }
 // Given a parent process's page table, copy
