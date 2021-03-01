@@ -147,9 +147,10 @@ freeproc(struct proc *p)
   p->trapframe = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+  p->pagetable = 0;
   if (p->uk_pagetable)
     proc_free_kernelpagetable(p->uk_pagetable,p->kstack);
-  p->pagetable = 0;
+  p->uk_pagetable = 0;
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
@@ -515,11 +516,14 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
-        swtch(&c->context, &p->context);
 
         //change pagetable
         w_satp(MAKE_SATP(p->uk_pagetable));
         sfence_vma();
+
+        swtch(&c->context, &p->context);
+
+
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
