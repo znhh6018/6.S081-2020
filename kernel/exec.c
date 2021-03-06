@@ -116,8 +116,15 @@ exec(char *path, char **argv)
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
 
+  //erase the old uk_pagetable,shallow copy the new pagetable
+  uvmdealloc_only_pagetable(p->uk_pagetable, oldsz, 0);
+  if (uvmcopy_only_pagetable(p->pagetable, p->uk_pagetable, 0, p->sz) == -1) {
+    goto bad;
+  }
+
   if(p->pid==1) 
     vmprint(p->pagetable);
+
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 

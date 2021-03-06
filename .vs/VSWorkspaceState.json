@@ -4,6 +4,6 @@
     "\\kernel",
     "\\user"
   ],
-  "SelectedNode": "\\user\\usertests.c",
+  "SelectedNode": "\\kernel\\syscall.c",
   "PreviewInSolutionExplorer": false
 }

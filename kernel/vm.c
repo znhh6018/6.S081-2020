@@ -284,6 +284,20 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   return newsz;
 }
 
+uint64
+uvmdealloc_only_pagetable(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
+{
+  if (newsz >= oldsz)
+    return oldsz;
+
+  if (PGROUNDUP(newsz) < PGROUNDUP(oldsz)) {
+    int npages = (PGROUNDUP(oldsz) - PGROUNDUP(newsz)) / PGSIZE;
+    uvmunmap(pagetable, PGROUNDUP(newsz), npages, 0);
+  }
+
+  return newsz;
+}
+
 // Deallocate user pages to bring the process size from oldsz to
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
@@ -343,6 +357,30 @@ uk_uvmfree(pagetable_t pagetable)
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   freewalk(pagetable);
 }
+
+int
+uvmcopy_only_pagetable(pagetable_t old, pagetable_t new, uint64 startsz, uint64 endsz) {
+  pte_t *pte;
+  uint64 pa;
+  uint flags;
+  uint64 p_startsz = PGROUNDUP(startsz);
+  for (uint64 i = p_startsz; i < endsz; i += PGSIZE) {
+    if ((pte = walk(old, i, 0)) == 0) {
+      panic("uvmcopy_only_pagetable:pte should exist");
+    }
+    if ((*pte & PTE_V) == 0) {
+      panic("uvmcopy_only_pagetable:page not present");
+    }
+    pa = PTE2PA(*pte);
+    flags = PTE_FLAGS(*pte) & ~PTE_U;// user flag zero
+    if (mappages(new, i, PGSIZE, pa, flags) != 0) {
+      uvmunmap(new, 0, i / PGSIZE, 0);
+      return -1;
+    }
+  }
+  return 0;
+}
+
 // Given a parent process's page table, copy
 // its memory into a child's page table.
 // Copies both the page table and the
