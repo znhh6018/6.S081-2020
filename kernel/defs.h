@@ -185,6 +185,8 @@ void            vmprint(pagetable_t rootpage);
 int             uk_kvminit(pagetable_t uk_pagetable);
 int             uk_vmmap(pagetable_t uk_pagetable, uint64 va, uint64 pa, uint64 sz, int perm);
 void            uk_uvmfree(pagetable_t pagetable);
+int             uvmcopy_only_pagetable(pagetable_t old, pagetable_t new, uint64 startsz, uint64 endsz);
+uint64          uvmdealloc_only_pagetable(pagetable_t pagetable, uint64 oldsz, uint64 newsz);
 
 // plic.c
 void            plicinit(void);
