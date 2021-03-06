@@ -529,15 +529,14 @@ scheduler(void)
         // It should have changed its p->state before coming back.
         c->proc = 0;
 
+        kvminithart();//**************************
+
         found = 1;
       }
       release(&p->lock);
     }
 #if !defined (LAB_FS)
     if(found == 0) {
-
-      kvminithart();//**************************
-
       intr_on();
       asm volatile("wfi");
     }
