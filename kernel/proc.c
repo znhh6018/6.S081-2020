@@ -287,6 +287,10 @@ growproc(int n)
 
   sz = p->sz;
   if(n > 0){
+    if (sz + n >= PLIC) {
+      panic("growproc:sz + n >= PLIC");
+      return -1;
+    }
     if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
       return -1;
     }
