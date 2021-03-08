@@ -4,6 +4,6 @@
     "\\kernel",
     "\\user"
   ],
-  "SelectedNode": "\\kernel\\riscv.h",
+  "SelectedNode": "\\kernel\\sysproc.c",
   "PreviewInSolutionExplorer": false
 }
