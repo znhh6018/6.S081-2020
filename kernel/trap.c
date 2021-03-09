@@ -70,7 +70,7 @@ usertrap(void)
     if (which_dev == 2) {
       p->cur_tick++;
       if (p->cur_tick == p->ticks) {
-        p->trapframe->epc = p->handler;
+        p->trapframe->epc =(uint64 ) p->handler;
         p->cur_tick = 0;
       }
     }

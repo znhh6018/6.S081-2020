@@ -110,7 +110,7 @@ sys_sigalarm(void) {
   if (argaddr(0, &handler) < 0) {
     return -1;
   }
-  myproc()->handler = handler;
+  myproc()->handler = (void *)handler;
 
   return 0;
 
