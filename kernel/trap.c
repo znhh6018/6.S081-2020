@@ -73,11 +73,8 @@ usertrap(void)
           p->cur_tick = 0;
           p->handler_occupy = 1;
           *p->alarm_trapframe = *p->trapframe;
-          p->trapframe->epc = (uint64)p->handler;
-        }
+          p->trapframe->epc = p->handler;
       }
-    }else{
-      yield();
     }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);

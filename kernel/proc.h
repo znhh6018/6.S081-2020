@@ -107,7 +107,7 @@ struct proc {
 
   //my data structure
   int ticks;
-  void(*handler)();
+  uint64 handler;
   int cur_tick;
   int handler_occupy;
   struct trapframe *alarm_trapframe; // data page for trampoline.S
