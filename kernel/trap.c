@@ -71,9 +71,9 @@ usertrap(void)
       p->handler_occupy = 1;
       p->cur_tick++;
       if (p->cur_tick == p->ticks) {
-        p->trapframe->epc =(uint64 ) p->handler;
         p->cur_tick = 0;
         *p->alarm_trapframe = *p->trapframe;
+        p->trapframe->epc =(uint64 ) p->handler;
       }
     }
 
