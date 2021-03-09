@@ -67,11 +67,13 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-    if (which_dev == 2) {
+    if (which_dev == 2 && p->handler_occupy == 0) {
+      p->handler_occupy = 1;
       p->cur_tick++;
       if (p->cur_tick == p->ticks) {
         p->trapframe->epc =(uint64 ) p->handler;
         p->cur_tick = 0;
+        *p->alarm_trapframe = *p->trapframe;
       }
     }
 

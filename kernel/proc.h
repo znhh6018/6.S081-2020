@@ -109,4 +109,6 @@ struct proc {
   int ticks;
   void(*handler)();
   int cur_tick;
+  bool handler_occupy;
+  struct trapframe *alarm_trapframe; // data page for trampoline.S
 };
