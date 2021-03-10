@@ -107,7 +107,7 @@ sys_sigalarm(void) {
   myproc()->ticks = ticks;
   //handler
   uint64 handler;
-  if (argaddr(0, &handler) < 0) {
+  if (argaddr(1, &handler) < 0) {
     return -1;
   }
   myproc()->handler = handler;
@@ -120,19 +120,7 @@ uint64
 sys_sigreturn(void) {
 
   struct proc *p = myproc();
-
-  uint64 kernel_satp = p->trapframe->kernel_satp;
-  uint64 kernel_sp = p->trapframe->kernel_sp;
-  uint64 kernel_trap = p->trapframe->kernel_trap;
-  uint64 kernel_hartid = p->trapframe->kernel_hartid;
-
   *p->trapframe = *p->alarm_trapframe;
-
-  p->trapframe->kernel_satp = kernel_satp;
-  p->trapframe->kernel_sp = kernel_sp;
-  p->trapframe->kernel_trap = kernel_trap;
-  p->trapframe->kernel_hartid = kernel_hartid;
-
   p->handler_occupy = 0;
 
   return 0;
