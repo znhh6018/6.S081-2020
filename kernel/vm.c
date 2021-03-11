@@ -394,7 +394,11 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
     if (pa0 == 0) {
-      pagefault_alloc();
+      if (pagefault_alloc() == -1) {
+        return -1;
+      } else {
+        pa0 = walkaddr(pagetable, va0);
+      }
     }
     n = PGSIZE - (dstva - va0);
     if(n > len)
@@ -420,7 +424,11 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
     va0 = PGROUNDDOWN(srcva);
     pa0 = walkaddr(pagetable, va0);
     if (pa0 == 0) {
-      pagefault_alloc();
+      if (pagefault_alloc() == -1) {
+        return -1;
+      } else {
+        pa0 = walkaddr(pagetable, va0);
+      }
     }
     n = PGSIZE - (srcva - va0);
     if(n > len)
@@ -447,8 +455,14 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   while(got_null == 0 && max > 0){
     va0 = PGROUNDDOWN(srcva);
     pa0 = walkaddr(pagetable, va0);
-    if(pa0 == 0)
-      return -1;
+    if (pa0 == 0) {
+      if (pagefault_alloc() == -1) {
+        return -1;
+      }
+      else {
+        pa0 = walkaddr(pagetable, va0);
+      }
+    }
     n = PGSIZE - (srcva - va0);
     if(n > max)
       n = max;

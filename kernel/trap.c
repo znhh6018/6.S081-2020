@@ -69,7 +69,9 @@ usertrap(void)
     // ok
   }
   else if ( r_scause() == 13 || r_scause() == 15) {
-    pagefault_alloc();
+    if (pagefault_alloc() == -1) {
+      p->killed = 1;
+    }
   }
   else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
@@ -87,26 +89,26 @@ usertrap(void)
   usertrapret();
 }
 
-void pagefault_alloc() {
+int pagefault_alloc() {
   struct proc*p = myproc();
   uint64 va = r_stval();
   //check va
   if (va > p->sz || p->sz < p->trapframe->sp) {
-    p->killed = 1;
+    return -1;
   }
-//  printf("page fault:%p\n", va);
   //kalloc physical memory
   uint64 ka = (uint64)kalloc();
   if (ka == 0) {
-    p->killed = 1;
+    return -1;
   } else {
     memset((void*)ka, 0, PGSIZE);
     va = PGROUNDDOWN(va);
     if (mappages(p->pagetable, va, PGSIZE, ka, PTE_W | PTE_U | PTE_R) != 0) {
       kfree((void*)ka);
-      p->killed = 1;
+      return -1;
     }
-  }  
+  }
+  return 0;
 }
 
 
