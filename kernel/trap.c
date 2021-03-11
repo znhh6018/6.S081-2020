@@ -92,7 +92,7 @@ usertrap(void)
 int pagefault_alloc(uint64 va) {
   struct proc*p = myproc();
   //check va
-  if (va > p->sz || p->sz < p->trapframe->sp) {
+  if (va >= p->sz || p->sz < p->trapframe->sp) {
     return -1;
   }
   //kalloc physical memory
