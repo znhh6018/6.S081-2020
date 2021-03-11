@@ -94,7 +94,7 @@ void pagefault_alloc() {
   if (va > p->sz || p->sz < p->trapframe->sp) {
     p->killed = 1;
   }
-  printf("page fault:%p\n", va);
+//  printf("page fault:%p\n", va);
   //kalloc physical memory
   uint64 ka = (uint64)kalloc();
   if (ka == 0) {
