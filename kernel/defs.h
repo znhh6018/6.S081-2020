@@ -146,7 +146,7 @@ void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
 
-int             pagefault_alloc();
+int             pagefault_alloc(uint64);
 
 // uart.c
 void            uartinit(void);

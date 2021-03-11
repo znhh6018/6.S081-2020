@@ -69,7 +69,7 @@ usertrap(void)
     // ok
   }
   else if ( r_scause() == 13 || r_scause() == 15) {
-    if (pagefault_alloc() == -1) {
+    if (pagefault_alloc(r_stval()) == -1) {
       p->killed = 1;
     }
   }
@@ -89,9 +89,8 @@ usertrap(void)
   usertrapret();
 }
 
-int pagefault_alloc() {
+int pagefault_alloc(uint64 va) {
   struct proc*p = myproc();
-  uint64 va = r_stval();
   //check va
   if (va > p->sz || p->sz < p->trapframe->sp) {
     return -1;
