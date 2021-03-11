@@ -1,8 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\kernel"
+    "\\kernel",
+    "\\user"
   ],
-  "SelectedNode": "\\kernel\\sysproc.c",
+  "SelectedNode": "\\kernel\\defs.h",
   "PreviewInSolutionExplorer": false
 }

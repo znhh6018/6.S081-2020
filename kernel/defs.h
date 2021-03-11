@@ -146,6 +146,8 @@ void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
 
+void            pagefault_alloc();
+
 // uart.c
 void            uartinit(void);
 void            uartintr(void);
@@ -171,6 +173,9 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+
+int             uvmcopy_lazy(pagetable_t, pagetable_t, uint64);
+
 
 // plic.c
 void            plicinit(void);
