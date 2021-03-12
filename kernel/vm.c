@@ -15,6 +15,32 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
+struct CowCount{
+  struct spinlock cow_lock;
+  int counts[1 << 15];
+} cow_count;
+
+int incCowCount(int nthpage) {
+  acquire(&cow_count.cow_lock);
+  int refCount = ++cow_count.counts[nthpage];
+  release(&cow_count.cow_lock);
+  return refCount;
+}
+
+int derCowCount(int nthpage) {
+  acquire(&cow_count.cow_lock);
+  int refCount = --cow_count.counts[nthpage];
+  release(&cow_count.cow_lock);
+  if (refCount < 0) {
+    panic("derCowCount:refCount < 0");
+  }
+  return refCount;
+}
+
+int curCowCount(int nthpage) {
+  return cow_count.counts[nthpage];
+}
+
 /*
  * create a direct-map page table for the kernel.
  */
@@ -299,6 +325,14 @@ uvmfree(pagetable_t pagetable, uint64 sz)
   freewalk(pagetable);
 }
 
+//decrease reference counts while err in uvmcopy
+void decreaseRef(pagetable_t new, uint64 top) {
+  for (uint64 i = 0; i < top; i += PGSIZE) {
+    uint64 pa = walkaddr(new,i);
+    int nthpage = pa / PGSIZE;
+    derCowCount(nthpage);
+  }
+}
 // Given a parent process's page table, copy
 // its memory into a child's page table.
 // Copies both the page table and the
@@ -311,27 +345,31 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
+  //char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
+    (*pte) = (*pte) & (~PTE_W);
+    (*pte) = (*pte) & (PTE_C);
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    //if((mem = kalloc()) == 0)
+      //goto err;
+    //memmove(mem, (char*)pa, PGSIZE);
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+      //kfree(mem);
       goto err;
     }
+    incCowCount(pa / PGSIZE);
   }
   return 0;
 
  err:
-  uvmunmap(new, 0, i / PGSIZE, 1);
+  uvmunmap(new, 0, i / PGSIZE, 0);
+  decreaseRef(new, i);
   return -1;
 }
 
@@ -355,10 +393,32 @@ int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
-
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    pa0 = walkaddr(pagetable, va0);
+    pte_t *pte = walk(pagetable, va0, 0);
+    if (*pte & PTE_C) {
+      uint64 cowpa = PTE2PA(*pte);
+      int nthpage = cowpa / PGSIZE;
+      if (curCowCount(nthpage) != 1) {
+        derCowCount(nthpage);
+        uint64 newpa = (uint64)kalloc();
+        if (newpa == 0) {
+          return -1;
+        }
+        memmove(newpa, (char*)cowpa, PGSIZE);
+        if (mappages(pagetable, va0, PGSIZE, newpa, PTE_W | PTE_U | PTE_R) != 0) {
+          kfree((void*)newpa);
+          return - 1;
+        }
+        pa0 = newpa;
+      } else {
+        *pte &= (^PTE_C); //clear cow page flag
+        *pte &= (PTE_W);
+        pa0 = cowpa;
+      }
+    } else {
+      pa0 = walkaddr(pagetable, va0);
+    }
     if(pa0 == 0)
       return -1;
     n = PGSIZE - (dstva - va0);

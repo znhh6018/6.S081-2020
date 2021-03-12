@@ -21,6 +21,9 @@ static void freeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
 
+
+
+
 // initialize the proc table at boot time.
 void
 procinit(void)
