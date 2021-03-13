@@ -68,8 +68,7 @@ kfree(void *pa)
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
-  int nthpage =((uint64) pa) / PGSIZE;
-  int refCount = derCowCount(nthpage);
+  int refCount = derCowCount((uint64)pa);
   //cow_count[pa / PGSIZE]--;
   if (refCount != 0) {
     return;

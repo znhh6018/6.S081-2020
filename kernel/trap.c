@@ -76,10 +76,9 @@ usertrap(void)
       pte_t *pte = walk(p->pagetable, va, 0);
       if (*pte & PTE_C) {
         uint64 pa = PTE2PA(*pte);
-        int nthpage = pa / PGSIZE;
         //several processes share this page
-        if (curCowCount(nthpage) != 1) {
-          derCowCount(nthpage);
+        if (curCowCount(pa) != 1) {
+          derCowCount(pa);
           uint64 newpa = (uint64)kalloc();
           if (newpa == 0) {
             p->killed = 1;

@@ -21,14 +21,16 @@ struct {
   int counts[1 << 15];
 } cow_count;
 
-int incCowCount(int nthpage) {
+int incCowCount(uint64 add) {
+  int nthpage = ((add - KERNBASE) >> PGSHIFT);
   acquire(&cow_count.cow_lock);
   int refCount = ++cow_count.counts[nthpage];
   release(&cow_count.cow_lock);
   return refCount;
 }
 
-int derCowCount(int nthpage) {
+int derCowCount(uint64 add) {
+  int nthpage = ((add - KERNBASE) >> PGSHIFT);
   acquire(&cow_count.cow_lock);
   int refCount = --cow_count.counts[nthpage];
   release(&cow_count.cow_lock);
@@ -38,7 +40,8 @@ int derCowCount(int nthpage) {
   return refCount;
 }
 
-int curCowCount(int nthpage) {
+int curCowCount(uint64 add) {
+  int nthpage = ((add - KERNBASE) >> PGSHIFT);
   return cow_count.counts[nthpage];
 }
 
@@ -330,8 +333,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 void decreaseRef(pagetable_t new, uint64 top) {
   for (uint64 i = 0; i < top; i += PGSIZE) {
     uint64 pa = walkaddr(new,i);
-    int nthpage = pa / PGSIZE;
-    derCowCount(nthpage);
+    derCowCount(pa);
   }
 }
 // Given a parent process's page table, copy
@@ -399,9 +401,8 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     pte_t *pte = walk(pagetable, va0, 0);
     if (*pte & PTE_C) {
       uint64 cowpa = PTE2PA(*pte);
-      int nthpage = cowpa / PGSIZE;
-      if (curCowCount(nthpage) != 1) {
-        derCowCount(nthpage);
+      if (curCowCount(cowpa) != 1) {
+        derCowCount(cowpa);
         uint64 newpa = (uint64)kalloc();
         if (newpa == 0) {
           return -1;
