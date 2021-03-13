@@ -70,7 +70,7 @@ kfree(void *pa)
 
   derCowCount((uint64)pa);
   //cow_count[pa / PGSIZE]--;
-  if (curCowCount(pa) != 0) {
+  if (curCowCount((uint64)pa) != 0) {
     return;
   }
 
