@@ -408,6 +408,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
           return -1;
         }
         memmove((void *)newpa, (char*)cowpa, PGSIZE);
+        *pte &= (~PTE_V);//clear PTE_V flag,or will remap
         if (mappages(pagetable, va0, PGSIZE, newpa, PTE_W | PTE_U | PTE_R) != 0) {
           kfree((void*)newpa);
           return - 1;

@@ -84,6 +84,7 @@ usertrap(void)
             p->killed = 1;
           }else{
             memmove((void*)newpa, (char*)pa, PGSIZE);
+            *pte &= (~PTE_V);//clear PTE_V flag,or will remap
             if (mappages(p->pagetable, va, PGSIZE, newpa, PTE_W | PTE_U | PTE_R) != 0) {
               kfree((void*)newpa);
               p->killed = 1;
