@@ -101,8 +101,7 @@ kalloc(void)
 
   if (r) {
     memset((char*)r, 5, PGSIZE); // fill with junk
-    int nthpage = (uint64)r / PGSIZE;
-    incCowCount(nthpage);
+    incCowCount((uint64)r);
   }
   return (void*)r;
 }

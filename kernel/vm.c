@@ -366,7 +366,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       //kfree(mem);
       goto err;
     }
-    incCowCount(pa / PGSIZE);
+    incCowCount(pa);
   }
   return 0;
 
