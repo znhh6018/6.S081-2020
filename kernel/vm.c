@@ -5,6 +5,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "spinlock.h"
 
 /*
  * the kernel's page table.
@@ -15,7 +16,7 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
-struct CowCount{
+struct {
   struct spinlock cow_lock;
   int counts[1 << 15];
 } cow_count;
@@ -405,14 +406,14 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
         if (newpa == 0) {
           return -1;
         }
-        memmove(newpa, (char*)cowpa, PGSIZE);
+        memmove((void *)newpa, (char*)cowpa, PGSIZE);
         if (mappages(pagetable, va0, PGSIZE, newpa, PTE_W | PTE_U | PTE_R) != 0) {
           kfree((void*)newpa);
           return - 1;
         }
         pa0 = newpa;
       } else {
-        *pte &= (^PTE_C); //clear cow page flag
+        *pte &= (~PTE_C); //clear cow page flag
         *pte &= (PTE_W);
         pa0 = cowpa;
       }

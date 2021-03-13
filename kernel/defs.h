@@ -8,7 +8,6 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
-struct CowCount;
 
 // bio.c
 void            binit(void);

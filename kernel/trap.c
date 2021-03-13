@@ -84,14 +84,14 @@ usertrap(void)
           if (newpa == 0) {
             p->killed = 1;
           }else{
-            memmove(newpa, (char*)pa, PGSIZE);
+            memmove((void*)newpa, (char*)pa, PGSIZE);
             if (mappages(p->pagetable, va, PGSIZE, newpa, PTE_W | PTE_U | PTE_R) != 0) {
               kfree((void*)newpa);
               p->killed = 1;
             }
           }        
         } else {
-          *pte &= (^PTE_C); //clear cow page flag
+          *pte &= (~PTE_C); //clear cow page flag
           *pte &= (PTE_W);
         }
       }
