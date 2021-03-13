@@ -353,8 +353,8 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    (*pte) = (*pte) & (~PTE_W);
-    (*pte) = (*pte) & (PTE_C);
+    (*pte) &= (~PTE_W);
+    *pte |= PTE_C;
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
     //if((mem = kalloc()) == 0)
