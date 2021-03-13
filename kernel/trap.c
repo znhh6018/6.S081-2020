@@ -92,7 +92,7 @@ usertrap(void)
           }        
         } else {
           *pte &= (~PTE_C); //clear cow page flag
-          *pte &= (PTE_W);
+          *pte |= (PTE_W);
         }
       }
     }

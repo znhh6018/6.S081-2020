@@ -416,7 +416,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
         pa0 = newpa;
       } else {
         *pte &= (~PTE_C); //clear cow page flag
-        *pte &= (PTE_W);
+        *pte |= (PTE_W);
         pa0 = cowpa;
       }
     } else {
