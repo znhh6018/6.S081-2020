@@ -30,13 +30,30 @@ kinit()
   freerange(end, (void*)PHYSTOP);
 }
 
+void kfree_kinit(void *pa) {
+  struct run *r;
+
+  if (((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("kfree");
+
+  // Fill with junk to catch dangling refs.
+  memset(pa, 1, PGSIZE);
+
+  r = (struct run*)pa;
+
+  acquire(&kmem.lock);
+  r->next = kmem.freelist;
+  kmem.freelist = r;
+  release(&kmem.lock);
+}
+
 void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
-    kfree(p);
+    kfree_kinit(p);
 }
 
 // Free the page of physical memory pointed at by v,
