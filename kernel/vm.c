@@ -22,7 +22,11 @@ struct {
 } cow_count;
 
 int incCowCount(uint64 add) {
-  int nthpage = ((add - KERNBASE) >> PGSHIFT);
+  int offset = (int)(add - KERNBASE);
+  if (offset < 0) {
+    return -1;
+  }
+  int nthpage = (offset >> PGSHIFT);
   acquire(&cow_count.cow_lock);
   int refCount = ++cow_count.counts[nthpage];
   release(&cow_count.cow_lock);
@@ -30,7 +34,11 @@ int incCowCount(uint64 add) {
 }
 
 int derCowCount(uint64 add) {
-  int nthpage = ((add - KERNBASE) >> PGSHIFT);
+  int offset = (int)(add - KERNBASE);
+  if (offset < 0) {
+    return -1;
+  }
+  int nthpage = (offset >> PGSHIFT);
   acquire(&cow_count.cow_lock);
   int refCount = --cow_count.counts[nthpage];
   release(&cow_count.cow_lock);
@@ -41,7 +49,11 @@ int derCowCount(uint64 add) {
 }
 
 int curCowCount(uint64 add) {
-  int nthpage = ((add - KERNBASE) >> PGSHIFT);
+  int offset = (int)(add - KERNBASE);
+  if (offset < 0) {
+    return 0;
+  }
+  int nthpage = (offset >> PGSHIFT);
   return cow_count.counts[nthpage];
 }
 

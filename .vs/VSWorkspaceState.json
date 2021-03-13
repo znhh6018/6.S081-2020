@@ -1,7 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\kernel"
+    "\\kernel",
+    "\\user"
   ],
   "SelectedNode": "\\kernel\\defs.h",
   "PreviewInSolutionExplorer": false

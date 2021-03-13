@@ -68,9 +68,9 @@ kfree(void *pa)
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
-  int refCount = derCowCount((uint64)pa);
+  derCowCount((uint64)pa);
   //cow_count[pa / PGSIZE]--;
-  if (refCount != 0) {
+  if (curCowCount(pa) != 0) {
     return;
   }
 
