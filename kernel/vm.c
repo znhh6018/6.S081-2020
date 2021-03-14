@@ -410,30 +410,10 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   uint64 n, va0, pa0;
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    pte_t *pte = walk(pagetable, va0, 0);
-    if (*pte & PTE_C) {
-      uint64 cowpa = PTE2PA(*pte);
-      if (curCowCount(cowpa) != 1) {
-        derCowCount(cowpa);
-        uint64 newpa = (uint64)kalloc();
-        if (newpa == 0) {
-          return -1;
-        }
-        memmove((void *)newpa, (char*)cowpa, PGSIZE);
-        *pte &= (~PTE_V);//clear PTE_V flag,or will remap
-        if (mappages(pagetable, va0, PGSIZE, newpa, PTE_W | PTE_U | PTE_R) != 0) {
-          kfree((void*)newpa);
-          return - 1;
-        }
-        pa0 = newpa;
-      } else {
-        *pte &= (~PTE_C); //clear cow page flag
-        *pte |= (PTE_W);
-        pa0 = cowpa;
-      }
-    } else {
-      pa0 = walkaddr(pagetable, va0);
+    if (cowpage_handle(pagetable, dstva) == -1) {
+      return -1;
     }
+    pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
     n = PGSIZE - (dstva - va0);

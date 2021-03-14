@@ -68,33 +68,8 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } else if (r_scause() == 13 || r_scause() == 15) {
-    uint64 va = r_stval();
-    if (va >= p->sz || va < p->trapframe->sp) {
+    if (cowpage_handle(p->pagetable, r_stval()) == -1) {
       p->killed = 1;
-    } else {
-      va = PGROUNDDOWN(va);
-      pte_t *pte = walk(p->pagetable, va, 0);
-      if (*pte & PTE_C) {
-        uint64 pa = PTE2PA(*pte);
-        //several processes share this page
-        if (curCowCount(pa) != 1) {
-          derCowCount(pa);
-          uint64 newpa = (uint64)kalloc();
-          if (newpa == 0) {
-            p->killed = 1;
-          }else{
-            memmove((void*)newpa, (char*)pa, PGSIZE);
-            *pte &= (~PTE_V);//clear PTE_V flag,or will remap
-            if (mappages(p->pagetable, va, PGSIZE, newpa, PTE_W | PTE_U | PTE_R) != 0) {
-              kfree((void*)newpa);
-              p->killed = 1;
-            }
-          }        
-        } else {
-          *pte &= (~PTE_C); //clear cow page flag
-          *pte |= (PTE_W);
-        }
-      }
     }
   }
   else {
@@ -111,6 +86,34 @@ usertrap(void)
     yield();
 
   usertrapret();
+}
+
+int cowpage_handle(pagetable_t p, uint64 va) {
+
+  if (va >= p->sz || va < p->trapframe->sp) {
+   return -1;
+  }
+  va = PGROUNDDOWN(va);
+  pte_t *pte = walk(p->pagetable, va, 0);
+  if ((*pte & PTE_C) == 0) {
+    return - 1;
+  }
+  uint64 oldpa = PTE2PA(*pte);
+  //several processes share this page
+  if (curCowCount(oldpa) != 1) {
+    derCowCount(oldpa);
+    uint64 newpa = (uint64)kalloc();
+    if (newpa == 0) {
+      return -1;
+    }
+    memmove((void*)newpa, (char*)oldpa, PGSIZE);
+    uint flags = PTE_FLAGS((*pte & (~PTE_C)) | PTE_W);
+    *pte = PA2PTE(newpa) | flags ;
+  }
+  else {
+    *pte = (*pte & (~PTE_C) | PTE_W);
+  }
+  return 0;
 }
 
 //
