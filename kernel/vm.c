@@ -410,10 +410,14 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   uint64 n, va0, pa0;
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    if (cowpage_handle(pagetable, dstva) == -1) {
+    pte_t *pte = walk(pagetable, va0, 0);
+    if ((*pte & PTE_C) == 0) {
+      pa0 = PTE2PA(*pte);
+    }
+    else if(cowpage_handle(pagetable, dstva) == -1){
       return -1;
     }
-    pa0 = walkaddr(pagetable, va0);
+    pa0 = PTE2PA(*pte);//pa0 = PTE2PA(*pte)
     if(pa0 == 0)
       return -1;
     n = PGSIZE - (dstva - va0);
