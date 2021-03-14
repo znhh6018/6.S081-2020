@@ -89,12 +89,8 @@ usertrap(void)
 }
 
 int cowpage_handle(pagetable_t p, uint64 va) {
-
-  if (va >= p->sz || va < p->trapframe->sp) {
-   return -1;
-  }
   va = PGROUNDDOWN(va);
-  pte_t *pte = walk(p->pagetable, va, 0);
+  pte_t *pte = walk(p, va, 0);
   if ((*pte & PTE_C) == 0) {
     return - 1;
   }
@@ -111,7 +107,7 @@ int cowpage_handle(pagetable_t p, uint64 va) {
     *pte = PA2PTE(newpa) | flags ;
   }
   else {
-    *pte = (*pte & (~PTE_C) | PTE_W);
+    *pte = ((*pte & (~PTE_C)) | PTE_W);
   }
   return 0;
 }
