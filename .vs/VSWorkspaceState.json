@@ -1,9 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\kernel",
-    "\\user"
+    "\\notxv6"
   ],
-  "SelectedNode": "\\kernel\\trampoline.S",
+  "SelectedNode": "\\notxv6\\ph.c",
   "PreviewInSolutionExplorer": false
 }
