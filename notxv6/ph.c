@@ -27,16 +27,14 @@ now()
 }
 
 static void 
-insert(int key, int value, struct entry **p, struct entry *n,int idx)
+insert(int key, int value, struct entry **p, struct entry *n)
 {
   struct entry *e = malloc(sizeof(struct entry));
   e->key = key;
   e->value = value;
   //lock
-  pthread_mutex_lock(&lock[idx]);
   e->next = n;
   *p = e;
-  pthread_mutex_unlock(&lock[idx]);
 }
 
 static 
@@ -55,7 +53,9 @@ void put(int key, int value)
     e->value = value;
   } else {
     // the new is new.
-    insert(key, value, &table[i], table[i],i);
+    pthread_mutex_lock(&lock[i]);
+    insert(key, value, &table[i], table[i]);
+    pthread_mutex_unlock(&lock[i]);
   }
 }
 
