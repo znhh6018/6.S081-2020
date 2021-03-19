@@ -84,28 +84,24 @@ kalloc(void)
   struct run *r;
   int curid = cpuid_interoff();
 
+  acquire(&kmem.lock[curid]);
   r = kmem.freelist[curid];
 
   if (r) {
-    acquire(&kmem.lock[curid]);
     kmem.freelist[curid] = r->next;
     release(&kmem.lock[curid]);
-  }else {
+  }else{
+    release(&kmem.lock[curid]);
     for (int i = 1; i < NCPU; i++) {
       int nextcpuid = (curid + i) % NCPU;
-      if (kmem.freelist[nextcpuid]) {
-        r = kmem.freelist[nextcpuid];
-        acquire(&kmem.lock[nextcpuid]);
+      acquire(&kmem.lock[nextcpuid]);
+      r = kmem.freelist[nextcpuid];
+      if (r) {
         kmem.freelist[nextcpuid] = r->next;
         release(&kmem.lock[nextcpuid]);
-
-        //add this page to curid cpu's freelist,not needed
-        //acquire(&kmem.lock[curid]);
-        //kmem.freelist[curid] = r;
-        //r->next = 0;
-        //kmem.freelist[curid] = 0;
-        //release(&kmem.lock[curid]);
+	break;
       }
+      release(&kmem.lock[nextcpuid]);
     }
   }
   if(r)
