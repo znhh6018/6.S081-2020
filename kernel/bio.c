@@ -102,13 +102,17 @@ bget(uint dev, uint blockno)
           //break buf
           b->prev->next = b->next;
           b->next->prev = b->prev;
+          release(&bcache.lock[newhash]);
           //merge into bucket
           b->prev = &bcache.bucket[hash];
           b->next = bcache.bucket[hash].next;
           bcache.bucket[hash].next->prev = b;
           bcache.bucket[hash].next = b;
+        b->dev = dev;
+        b->blockno = blockno;
+        b->valid = 0;
+        b->refcnt = 1;
 
-          release(&bcache.lock[newhash]);
           release(&bcache.lock[hash]);
           acquiresleep(&b->lock);
           return b;
@@ -116,8 +120,8 @@ bget(uint dev, uint blockno)
       }
       release(&bcache.lock[newhash]);
     }
-    panic("bget: no buffers");
   }
+    panic("bget: no buffers");
 }
 
 // Return a locked buf with the contents of the indicated block.
