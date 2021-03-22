@@ -54,6 +54,7 @@ binit(void)
     bcache.bucket[round].next->prev = b;
     bcache.bucket[round].next = b;
   }
+  initlock(&bcache.steal, "bcache");
 }
 
 // Look through buffer cache for block on device dev.
