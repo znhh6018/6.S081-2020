@@ -28,6 +28,8 @@ struct {
   struct buf bucket[NBUCKET];
   struct buf buf[NBUF];
 
+  struct spinlock steal;
+
   // Linked list of all buffers, through prev/next.
   // Sorted by how recently the buffer was used.
   // head.next is most recent, head.prev is least.
@@ -63,7 +65,7 @@ bget(uint dev, uint blockno)
   struct buf *b;
 
   int hash = (blockno) % NBUCKET;
-  int buf_ref0_exist;
+  int buf_ref0_exist;//if not cached ,does this bucket have a buf whose refcount is zero
 
   acquire(&bcache.lock[hash]);
 
@@ -92,8 +94,42 @@ bget(uint dev, uint blockno)
       }
     }
   }
+  release(&bcache.lock[hash]);
+  acquire(&bcache.steal);
+  acquire(&bcache.lock[hash]);
+  //check one more time,before you get the steallock,other process may modify this bucket,brelease a buf in this bucket,
+  //so there is a buf whose ref is zero 
+
+  for (b = bcache.bucket[hash].next; b != &bcache.bucket[hash]; b = b->next) {
+    if (b->dev == dev && b->blockno == blockno) {
+      b->refcnt++;
+      release(&bcache.lock[hash]);
+      release(&bcache.steal);
+      acquiresleep(&b->lock);
+      return b;
+    }
+    if (b->refcnt == 0) {
+      buf_ref0_exist = 1;
+    }
+  }
+  //no need to steal from other bucket
+  if (buf_ref0_exist == 1) {
+    for (b = bcache.bucket[hash].prev; b != &bcache.bucket[hash]; b = b->prev) {
+      if (b->refcnt == 0) {
+        b->dev = dev;
+        b->blockno = blockno;
+        b->valid = 0;
+        b->refcnt = 1;
+        release(&bcache.lock[hash]);
+        release(&bcache.steal);
+        acquiresleep(&b->lock);
+        return b;
+      }
+    }
+  }
+
   //steal from other bucket
-  else {
+  if (buf_ref0_exist == 0) {
     for (int i = 1; i < NBUCKET; i++) {
       int newhash = (hash + i) % NBUCKET;
       acquire(&bcache.lock[newhash]);
@@ -108,12 +144,14 @@ bget(uint dev, uint blockno)
           b->next = bcache.bucket[hash].next;
           bcache.bucket[hash].next->prev = b;
           bcache.bucket[hash].next = b;
-        b->dev = dev;
-        b->blockno = blockno;
-        b->valid = 0;
-        b->refcnt = 1;
+
+          b->dev = dev;
+          b->blockno = blockno;
+          b->valid = 0;
+          b->refcnt = 1;
 
           release(&bcache.lock[hash]);
+          release(&bcache.steal);
           acquiresleep(&b->lock);
           return b;
         }
@@ -121,7 +159,9 @@ bget(uint dev, uint blockno)
       release(&bcache.lock[newhash]);
     }
   }
-    panic("bget: no buffers");
+  release(&bcache.lock[hash]);
+  release(&bcache.steal);
+  panic("bget: no buffers");
 }
 
 // Return a locked buf with the contents of the indicated block.
@@ -175,7 +215,7 @@ brelse(struct buf *b)
 
 void
 bpin(struct buf *b) {
-  int hash = b->blockno%NBUCKET;
+  int hash = b->blockno % NBUCKET;
   acquire(&bcache.lock[hash]);
   b->refcnt++;
   release(&bcache.lock[hash]);
@@ -183,7 +223,7 @@ bpin(struct buf *b) {
 
 void
 bunpin(struct buf *b) {
-  int hash = b->blockno%NBUCKET;
+  int hash = b->blockno % NBUCKET;
   acquire(&bcache.lock[hash]);
   b->refcnt--;
   release(&bcache.lock[hash]);
