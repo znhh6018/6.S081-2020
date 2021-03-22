@@ -65,6 +65,7 @@ bget(uint dev, uint blockno)
   struct buf *b;
 
   uint hash = blockno % NBUCKET;
+  int exist_ref0 = 0;//whether this bucket contains a buf whose refcount is zero
 
   acquire(&bcache.lock[hash]);
   for (b = bcache.bucket[hash].next; b != &bcache.bucket[hash]; b = b->next) {
@@ -74,23 +75,28 @@ bget(uint dev, uint blockno)
       acquiresleep(&b->lock);
       return b;
     }
-  }
-  // Not cached, find LRU
-  for (b = bcache.bucket[hash].prev; b != &bcache.bucket[hash]; b = b->prev) {
     if (b->refcnt == 0) {
-      b->dev = dev;
-      b->blockno = blockno;
-      b->valid = 0;
-      b->refcnt = 1;
-      release(&bcache.lock[hash]);
-      acquiresleep(&b->lock);
-      return b;
+      exist_ref0 = 1;
     }
   }
+  // no need to steal
+  if (exist_ref0 == 1) {
+    for (b = bcache.bucket[hash].prev; b != &bcache.bucket[hash]; b = b->prev) {
+      if (b->refcnt == 0) {
+        b->dev = dev;
+        b->blockno = blockno;
+        b->valid = 0;
+        b->refcnt = 1;
+        release(&bcache.lock[hash]);
+        acquiresleep(&b->lock);
+        return b;
+      }
+    }
+  } 
   release(&bcache.lock[hash]);
   acquire(&bcache.steal);
   acquire(&bcache.lock[hash]);
-
+  //check again,while this process is waiting for the steal lock,other process modify the buf in this bucket
   for (b = bcache.bucket[hash].next; b != &bcache.bucket[hash]; b = b->next) {
     if (b->dev == dev && b->blockno == blockno) {
       b->refcnt++;
@@ -99,20 +105,22 @@ bget(uint dev, uint blockno)
       acquiresleep(&b->lock);
       return b;
     }
-  }
-
-  // Not cached, find LRU
-  for (b = bcache.bucket[hash].prev; b != &bcache.bucket[hash]; b = b->prev) {
     if (b->refcnt == 0) {
-      b->dev = dev;
-      b->blockno = blockno;
-      b->valid = 0;
-      b->refcnt = 1;
-
-      release(&bcache.lock[hash]);
-      release(&bcache.steal);
-      acquiresleep(&b->lock);
-      return b;
+      exist_ref0 = 1;
+    }
+  }
+  // no need to steal
+  if (exist_ref0 == 1) {
+    for (b = bcache.bucket[hash].prev; b != &bcache.bucket[hash]; b = b->prev) {
+      if (b->refcnt == 0) {
+        b->dev = dev;
+        b->blockno = blockno;
+        b->valid = 0;
+        b->refcnt = 1;
+        release(&bcache.lock[hash]);
+        acquiresleep(&b->lock);
+        return b;
+      }
     }
   }
   // steal from other bucket
