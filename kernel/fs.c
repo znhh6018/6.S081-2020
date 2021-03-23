@@ -365,6 +365,59 @@ iunlockput(struct inode *ip)
   iput(ip);
 }
 
+//my bmap
+static uint
+bmap(struct inode *ip, uint bn)
+{
+  uint addr, *a;
+  struct buf *bp;
+
+  if (bn < NDIRECT) {
+    if ((addr = ip->addrs[bn]) == 0)
+      ip->addrs[bn] = addr = balloc(ip->dev);
+    return addr;
+  }
+  bn -= NDIRECT;
+
+  if (bn < NINDIRECT) {
+    // Load indirect block, allocating if necessary.
+    if ((addr = ip->addrs[NDIRECT]) == 0)
+      ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    if ((addr = a[bn]) == 0) {
+      a[bn] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    return addr;
+  }
+  bn -= NINDIRECT;
+  if (bn < NINDIRECT*NINDIRECT) {
+    uint firstpage_idx, secondpage_idx;
+    firstpage_idx = bn / NINDIRECT, secondpage_idx = bn % NINDIRECT;
+    if ((addr = ip->addrs[NDIRECT + 1]) == 0) {
+      ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev);
+    }
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    if ((addr = a[firstpage_idx]) == 0) {
+      a[firstpage_idx] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    if ((addr = a[secondpage_idx) == 0) {
+      a[secondpage_idx] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    return addr;
+  }
+
+  panic("bmap: out of range");
+}
 // Inode content
 //
 // The content (data) associated with each inode is stored
@@ -375,7 +428,7 @@ iunlockput(struct inode *ip)
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
 static uint
-bmap(struct inode *ip, uint bn)
+bmap_original(struct inode *ip, uint bn)
 {
   uint addr, *a;
   struct buf *bp;
