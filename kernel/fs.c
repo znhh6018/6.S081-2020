@@ -408,7 +408,7 @@ bmap(struct inode *ip, uint bn)
     brelse(bp);
     bp = bread(ip->dev, addr);
     a = (uint*)bp->data;
-    if ((addr = a[secondpage_idx) == 0) {
+    if ((addr = a[secondpage_idx]) == 0) {
       a[secondpage_idx] = addr = balloc(ip->dev);
       log_write(bp);
     }
