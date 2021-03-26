@@ -67,6 +67,26 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if (r_scause() == 13 || r_scause() == 15) {
+    uint64 va = r_stval();
+    va = PGROUNDDOWN(va);
+    if (va >= p->sz) {
+      p->killed = 1;
+    } 
+    else {
+      for (int i = 0; i < NOFILE; i++) {
+        struct mmapfile mmf = p->mf[i];
+        if (mmf.occupy == 1 && va >= mmf.startAddr && va < mmf.endAddr) {
+          if (mmap_copy(va, &mmf,p) < 0) {
+            p->killed = 1;
+          }
+          break;
+        }
+        if (i == NOFILE - 1) {
+          p->killed = 1;
+        }
+      }
+    }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
@@ -81,6 +101,26 @@ usertrap(void)
     yield();
 
   usertrapret();
+}
+
+int mmap_copy(uint64 va, struct mmapfile* mmf,struct proc* p) {
+  uint64 pa;
+  struct inode* ip = mmf->f->ip;
+  uint off = va - mmf->startAddr;
+  if ((pa = (uint64)kalloc()) == 0) {
+    return -1;
+  }
+  ilock(ip);
+  if (readi(ip, 0, pa, off, PGSIZE) == -1) {
+    iunlock(f->ip);
+    return -1;
+  }
+  iunlock(ip);
+  if (mappages(p->pagetable,va,PGSIZE,pa,(mmf->flag << 1) | PTE_U) != 0) {
+    kfree(pa);
+    return - 1;
+  }
+  return 0;
 }
 
 //

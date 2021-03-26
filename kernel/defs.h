@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct mmapfile;
 
 // bio.c
 void            binit(void);
@@ -33,6 +34,7 @@ void            fileinit(void);
 int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+struct file*    file_ref_down(struct file *f);
 
 // fs.c
 void            fsinit(int);
@@ -146,6 +148,7 @@ void            trapinit(void);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
+int             mmap_copy(uint64 va, struct mmapfile* mmf, struct proc* p);
 
 // uart.c
 void            uartinit(void);
