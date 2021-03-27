@@ -196,6 +196,7 @@ int mmap_copy(uint64 va, struct mmapfile* mmf, struct proc* p) {
   if ((pa = (uint64)kalloc()) == 0) {
     return -1;
   }
+  memset((void*)pa,0,PGSIZE);
   begin_op();
   ilock(ip);
   if (readi(ip, 0, pa, off, PGSIZE) == -1) {
@@ -205,7 +206,7 @@ int mmap_copy(uint64 va, struct mmapfile* mmf, struct proc* p) {
   }
   iunlock(ip);
   end_op();
-  if (mappages(p->pagetable, va, PGSIZE, pa, (mmf->flag << 1) | PTE_U) != 0) {
+  if (mappages(p->pagetable, va, PGSIZE, pa, (mmf->prot << 1) | PTE_U) != 0) {
     kfree((void*)pa);
     return -1;
   }

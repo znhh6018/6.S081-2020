@@ -504,6 +504,10 @@ sys_mmap(void) {
   if (i == NOFILE) {
     return -1;
   }  
+  if(f->writable == 0 && (prot & PROT_WRITE) && flag == MAP_SHARED){
+	  return -1;
+  }
+		  
   struct mmapfile* mmf = &p->mf[i];
   mmf->f = f;
   filedup(f);
@@ -534,6 +538,7 @@ munmap_mmf(uint64 va_start,uint64 va_end,struct mmapfile*mmf,struct proc*p) {
         iunlock(mmf->f->ip);
         end_op();
       }
+      printf("uvmunmap address:%p\n",i);
       uvmunmap(p->pagetable, i, 1, 1);
     }
   }
@@ -565,11 +570,12 @@ sys_munmap(void) {
   }
   va_end = va_start + length;
   va_start = PGROUNDDOWN(va_start);
+  printf("sys_munmap address:%p %p\n",va_start,va_end);
   struct proc* p = myproc();
   struct mmapfile* mmf;
   for (int i = 0; i < NOFILE; i++) {
     mmf = &p->mf[i];
-    if (mmf->occupy && va_start >= mmf->startAddr && va_end < mmf->endAddr) {     
+    if (mmf->occupy && va_start >= mmf->startAddr && va_end <= mmf->endAddr) {     
       break;
     }
     if (i == NOFILE - 1) {
@@ -577,5 +583,6 @@ sys_munmap(void) {
     }
   }
   va_end = PGROUNDUP(va_end);
+  printf("sys_munmap address:%p %p\n",va_start,va_end);
   return munmap_mmf(va_start,va_end,mmf,p);
 }

@@ -73,6 +73,7 @@ usertrap(void)
       p->killed = 1;
     } 
     else {
+	    printf("virtual address:%p\n",va);
       for (int i = 0; i < NOFILE; i++) {
         struct mmapfile *mmf = &p->mf[i];
         if (mmf->occupy == 1 && va >= mmf->startAddr && va < mmf->endAddr) {
