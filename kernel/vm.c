@@ -360,23 +360,17 @@ uk_uvmfree(pagetable_t pagetable)
 
 int
 uvmcopy_only_pagetable(pagetable_t old, pagetable_t new, uint64 startsz, uint64 endsz) {
-  pte_t *pte;
+  pte_t *pte_old,*pte_new;
   uint64 pa;
   uint flags;
   uint64 p_startsz = PGROUNDUP(startsz);
   for (uint64 i = p_startsz; i < endsz; i += PGSIZE) {
-    if ((pte = walk(old, i, 0)) == 0) {
-      panic("uvmcopy_only_pagetable:pte should exist");
-    }
-    if ((*pte & PTE_V) == 0) {
-      panic("uvmcopy_only_pagetable:page not present");
-    }
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte) & ~PTE_U;// user flag zero
-    if (mappages(new, i, PGSIZE, pa, flags) != 0) {
-      uvmunmap(new, 0, i / PGSIZE, 0);
-      return -1;
-    }
+    pte_old = walk(old, i, 0);
+    pte_new = walk(new, i, 1);
+    *pte_new = *pte_old;
+    // because the user mapping in kernel page table is only used for copyin
+    // so the kernel don't need to have the W,X,U bit turned on
+    *pte_new &= ~PTE_U;
   }
   return 0;
 }
