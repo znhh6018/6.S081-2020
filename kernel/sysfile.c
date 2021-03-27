@@ -504,7 +504,7 @@ sys_mmap(void) {
   if (i == NOFILE) {
     return -1;
   }  
-  struct mmapfile* mmf = &p->mf[idx];
+  struct mmapfile* mmf = &p->mf[i];
   mmf->f = f;
   filedup(f);
   mmf->prot = prot;
@@ -541,7 +541,7 @@ munmap_mmf(uint64 va_start,uint64 va_end,struct mmapfile*mmf,struct proc*p) {
   int end_same = (va_end == mmf->endAddr);
   if (start_same && end_same) {
     file_ref_down(mmf->f);
-    memset(mmf, 0, sizeof(struct mmapfile);
+    memset(mmf, 0, sizeof(struct mmapfile));
     return 0;
   }
   if (start_same) {
