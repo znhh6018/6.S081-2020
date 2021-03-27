@@ -361,6 +361,8 @@ uk_uvmfree(pagetable_t pagetable)
 
 int
 uvmcopy_only_pagetable(pagetable_t old, pagetable_t new, uint64 startsz, uint64 endsz) {
+  if (endsz >= PLIC)
+    panic("uvmcopy_only_pagetable: endsz too large");
   pte_t *pte_old,*pte_new;
   uint64 p_startsz = PGROUNDUP(startsz);
   for (uint64 i = p_startsz; i < endsz; i += PGSIZE) {

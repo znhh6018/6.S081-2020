@@ -262,7 +262,6 @@ userinit(void)
   // allocate one user page and copy init's instructions
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
-  uvmcopy_only_pagetable(p->pagetable, p->uk_pagetable, 0, sizeof(initcode));
   p->sz = PGSIZE;
 
   // prepare for the very first "return" from kernel to user.
@@ -273,6 +272,7 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  uvmcopy_only_pagetable(p->pagetable, p->uk_pagetable, 0, p->sz);
 
   release(&p->lock);
 }
