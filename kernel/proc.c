@@ -303,9 +303,9 @@ fork(void)
   np->state = RUNNABLE;
 
   //add mmapfile
-  struct mapfile *mmf_f,*mmf_s;
+  struct mmapfile *mmf_f,*mmf_s;
   for (int i = 0; i < NOFILE; i++) {
-    mmf_f = &p->mf[i],mmf_s = &np->mf[i];
+    mmf_f = &(p->mf[i]),mmf_s = &(np->mf[i]);
     mmf_s->occupy = mmf_f->occupy;
     mmf_s->startAddr = mmf_f->startAddr;
     mmf_s->endAddr = mmf_f->endAddr;

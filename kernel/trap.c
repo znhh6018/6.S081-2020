@@ -5,7 +5,6 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-
 struct spinlock tickslock;
 uint ticks;
 
@@ -113,14 +112,14 @@ int mmap_copy(uint64 va, struct mmapfile* mmf,struct proc* p) {
   begin_op();
   ilock(ip);
   if (readi(ip, 0, pa, off, PGSIZE) == -1) {
-    iunlock(f->ip);
+    iunlock(ip);
     end_op();
     return -1;
   }
   iunlock(ip);
   end_op();
   if (mappages(p->pagetable,va,PGSIZE,pa,(mmf->flag << 1) | PTE_U) != 0) {
-    kfree(pa);
+    kfree((void*)pa);
     return - 1;
   }
   return 0;
