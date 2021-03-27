@@ -63,6 +63,7 @@ exec(char *path, char **argv)
 
   p = myproc();
   uint64 oldsz = p->sz;
+  uvmdealloc_only_pagetable(p->uk_pagetable, oldsz, 0);
 
   // Allocate two pages at the next page boundary.
   // Use the second as the user stack.
@@ -117,7 +118,6 @@ exec(char *path, char **argv)
   proc_freepagetable(oldpagetable, oldsz);
 
   //erase the old uk_pagetable,shallow copy the new pagetable
-  uvmdealloc_only_pagetable(p->uk_pagetable, oldsz, 0);
   if (uvmcopy_only_pagetable(p->pagetable, p->uk_pagetable, 0, p->sz) == -1) {
     goto bad;
   }

@@ -208,6 +208,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
   uint64 a;
   pte_t *pte;
+  printf("uvmunmap va:%d page:%d\n",va,npages);
 
   if((va % PGSIZE) != 0)
     panic("uvmunmap: not aligned");
@@ -361,8 +362,6 @@ uk_uvmfree(pagetable_t pagetable)
 int
 uvmcopy_only_pagetable(pagetable_t old, pagetable_t new, uint64 startsz, uint64 endsz) {
   pte_t *pte_old,*pte_new;
-  uint64 pa;
-  uint flags;
   uint64 p_startsz = PGROUNDUP(startsz);
   for (uint64 i = p_startsz; i < endsz; i += PGSIZE) {
     pte_old = walk(old, i, 0);

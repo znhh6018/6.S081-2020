@@ -353,6 +353,7 @@ fork(void)
   np->state = RUNNABLE;
 
   release(&np->lock);
+  printf("fork sz:%d\n",p->sz);
 
   return pid;
 }
