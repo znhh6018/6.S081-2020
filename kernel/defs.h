@@ -34,6 +34,8 @@ int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
 struct file*    file_ref_down(struct file *f);
+int             mmap_copy(uint64 va, struct mmapfile* mmf, struct proc* p);
+
 
 // fs.c
 void            fsinit(int);
@@ -147,7 +149,6 @@ void            trapinit(void);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
-int             mmap_copy(uint64 va, struct mmapfile* mmf, struct proc* p);
 
 // uart.c
 void            uartinit(void);

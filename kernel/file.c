@@ -189,3 +189,25 @@ filewrite(struct file *f, uint64 addr, int n)
   return ret;
 }
 
+int mmap_copy(uint64 va, struct mmapfile* mmf, struct proc* p) {
+  uint64 pa;
+  struct inode* ip = mmf->f->ip;
+  uint off = va - mmf->startAddr;
+  if ((pa = (uint64)kalloc()) == 0) {
+    return -1;
+  }
+  begin_op();
+  ilock(ip);
+  if (readi(ip, 0, pa, off, PGSIZE) == -1) {
+    iunlock(ip);
+    end_op();
+    return -1;
+  }
+  iunlock(ip);
+  end_op();
+  if (mappages(p->pagetable, va, PGSIZE, pa, (mmf->flag << 1) | PTE_U) != 0) {
+    kfree((void*)pa);
+    return -1;
+  }
+  return 0;
+}
