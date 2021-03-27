@@ -302,6 +302,22 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  //add mmapfile
+  struct mapfile *mmf_f,*mmf_s;
+  for (int i = 0; i < NOFILE; i++) {
+    mmf_f = &p->mf[i],mmf_s = &np->mf[i];
+    mmf_s->occupy = mmf_f->occupy;
+    mmf_s->startAddr = mmf_f->startAddr;
+    mmf_s->endAddr = mmf_f->endAddr;
+    mmf_s->prot = mmf_f->prot;
+    mmf_s->flag = mmf_f->flag;
+
+    //if file exist ,increment reference count
+    if (mmf_f->occupy && mmf_f->f) {
+      mmf_s->f = filedup(mmf_f->f);
+    }
+  }
+
   release(&np->lock);
 
   return pid;
@@ -393,6 +409,17 @@ exit(int status)
   p->state = ZOMBIE;
 
   release(&original_parent->lock);
+
+  //release mmap file
+  struct mmapfile* mmf;
+  for (int i = 0; i < NOFILE; i++) {
+    mmf = &p->mf[i];
+    if (mmf->occupy && mmf->f) {
+      if (munmap_mmf(mmf->startAddr, mmf->endAddr, mmf,p) == -1) {
+        panic("exit:munmap_mmf fail");
+      }
+    }
+  }
 
   // Jump into the scheduler, never to return.
   sched();

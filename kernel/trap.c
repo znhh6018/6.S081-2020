@@ -75,9 +75,9 @@ usertrap(void)
     } 
     else {
       for (int i = 0; i < NOFILE; i++) {
-        struct mmapfile mmf = p->mf[i];
-        if (mmf.occupy == 1 && va >= mmf.startAddr && va < mmf.endAddr) {
-          if (mmap_copy(va, &mmf,p) < 0) {
+        struct mmapfile *mmf = &p->mf[i];
+        if (mmf->occupy == 1 && va >= mmf->startAddr && va < mmf->endAddr) {
+          if (mmap_copy(va, mmf,p) < 0) {
             p->killed = 1;
           }
           break;
@@ -110,12 +110,15 @@ int mmap_copy(uint64 va, struct mmapfile* mmf,struct proc* p) {
   if ((pa = (uint64)kalloc()) == 0) {
     return -1;
   }
+  begin_op();
   ilock(ip);
   if (readi(ip, 0, pa, off, PGSIZE) == -1) {
     iunlock(f->ip);
+    end_op();
     return -1;
   }
   iunlock(ip);
+  end_op();
   if (mappages(p->pagetable,va,PGSIZE,pa,(mmf->flag << 1) | PTE_U) != 0) {
     kfree(pa);
     return - 1;

@@ -494,15 +494,14 @@ sys_mmap(void) {
     return -1;
   }
   struct proc* p = myproc();
-  int idx = -1;
-  for (int i = 0; i < NOFILE; i++) {
+  int i;
+  for (i = 0; i < NOFILE; i++) {
     if (p->mf[i].occupy == 0) {
       p->mf[i].occupy = 1;
-      idx = i;
       break;
     }
   }
-  if (idx == -1) {
+  if (i == NOFILE) {
     return -1;
   }  
   struct mmapfile* mmf = &p->mf[idx];
@@ -517,34 +516,17 @@ sys_mmap(void) {
   return mmf->startAddr;
 }
 
-uint64
-sys_munmap(void) {
-  uint64 va_start,va_end;
-  int length;
-  if (argaddr(0, &va_start) < 0 || argint(1, &length) < 0 ) {
-    return -1;
-  }
-  va_end = va_start + length;
-  struct proc* p = myproc();
-  struct mmapfile* mmf;
-  for (int i = 0; i < NOFILE; i++) {
-    mmf = &p->mf[i];
-    if (mmf->occupy && va_start >= mmf->startAddr && va_end < mmf->endAddr) {     
-      break;
-    }
-    if (i == NOFILE - 1) {
-      return -1;
-    }
-  }
-  va_start = PGROUNDDOWN(va_start);
+//va_start & va_end page aligned
+int
+munmap_mmf(uint64 va_start,uint64 va_end,struct mmapfile*mmf,struct proc*p) {
   int could_write_back = (mmf->prot & PROT_WRITE) && (mmf->flag == MAP_SHARED);
   for (uint64 i = va_start; i < va_end; i += PGSIZE) {
     if (walkaddr(p->pagetable, i) != 0) {
       if (could_write_back) {
         begin_op();
         ilock(mmf->f->ip);
-        int size = min(va_end - i, PGSIZE);//filewrite
-        if (writei(mmf->f->ip, 1, i, i - mmf->startAddr, size) < size) {
+        //int size = min(va_end - i, PGSIZE);//filewrite
+        if (writei(mmf->f->ip, 1, i, i - mmf->startAddr, PGSIZE) == -1) {
           iunlock(mmf->f->ip);
           end_op();
           return -1;
@@ -552,10 +534,9 @@ sys_munmap(void) {
         iunlock(mmf->f->ip);
         end_op();
       }
-      uvmunmap(p->pagetable,i,1,1);
+      uvmunmap(p->pagetable, i, 1, 1);
     }
   }
-  va_end = PGROUNDUP(va_end);
   int start_same = (va_start == mmf->startAddr);
   int end_same = (va_end == mmf->endAddr);
   if (start_same && end_same) {
@@ -569,5 +550,32 @@ sys_munmap(void) {
   if (end_same) {
     mmf->endAddr = va_start;
   }
+  if (mmf->endAddr == p->sz) {
+    p->sz = va_start;
+  }
   return 0;
+}
+
+uint64
+sys_munmap(void) {
+  uint64 va_start,va_end;
+  int length;
+  if (argaddr(0, &va_start) < 0 || argint(1, &length) < 0 ) {
+    return -1;
+  }
+  va_end = va_start + length;
+  va_start = PGROUNDDOWN(va_start);
+  struct proc* p = myproc();
+  struct mmapfile* mmf;
+  for (int i = 0; i < NOFILE; i++) {
+    mmf = &p->mf[i];
+    if (mmf->occupy && va_start >= mmf->startAddr && va_end < mmf->endAddr) {     
+      break;
+    }
+    if (i == NOFILE - 1) {
+      return -1;
+    }
+  }
+  va_end = PGROUNDUP(va_end);
+  return munmap_mmf(va_start,va_end,mmf,p);
 }
