@@ -1,7 +1,7 @@
 # 6.S081-2020
 
 
-Finished 6.s081 by the end of March as scheduled,i did learn a lot.By doing labs,I got an overall understanding of operating system,such as virtual address,pagetable,traps,lazy alloction,copy on write,file system and mmap.
+Finished 6.s081 by the end of March as scheduled,i did learn a lot.By doing labs,I got an overall understanding of operating system,such as virtual address,pagetable,traps,lazy alloction,copy on write,file system and mmap.  
 reference: a translation to the videos,very useful. https://www.zhihu.com/column/c_1294282919087964160 
 
 ## lab3 pagetable
