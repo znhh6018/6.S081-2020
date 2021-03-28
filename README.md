@@ -6,7 +6,7 @@ reference: a translation to the videos,very useful. https://www.zhihu.com/column
 
 ## lab3 pagetable
 This is probably the most important part,at first I got confused with it,I don't what the requirements are and why we need to do this,it took me more than three weeks to understand.Finally i got it,anything is clear.Here are some conclusions.
-1.Why we need to add a pagetbale into the process that mapped both the kernel and the process address space?
+1 ,., Why we need to add a pagetbale into the process that mapped both the kernel and the process address space?
   Because you don't need to switch the pagetable when there's a system call or trap,you can easily copy something from the kernel to user or user to kernel,it's more efficient.
   In the real Linux,we implement the pagetable like this.
 2.Now that there is a pagetable mapped both the kernel and the user address space,what's the kernel pagetbale for?
