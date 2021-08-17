@@ -22,12 +22,25 @@ Here are some details:
 2. When fork,use a bit flag to indicate the pages in the father's pagetable are COW pages,erase the writeable flag thus there will be a page fault when write,the child map the same physical address,then add the refcount.
 3. check the COW flag and refcount when page fault,if refcount is one,modify the flag.erase the COW and set the writeable flag,use directly.If the refcount is more than 1,copy dat a to a new physical page,decrease the refcount of the old page.
 
-## lab7 buffer cache
+## lab8 buffer cache
 This part is about lock contention.
 Buffer cache is used for the data transmition between disk and memory.we need to enhance the concurrency.
 Here are some details:
 1. divide the buffers into several buckets,each bucket with a lock.it's like a hashtable.
 2. In each bucket,buffers are organized by a two-way linked list,be careful of the pointer when break and insert the linked list. 
+
+## lab9 file system
+write procedure in XV6 , about the time to write log and persistence
+introduce two kinds of block 
++ cache block : the real block we want to write
++ log block : the block in log area , for write-ahead operation
+
+1. begin_op() , wait if another process is commiting
+2. write data into cache block 
+3. copy data from cache block to log block and persist
+4. write log header and persist
+5. copy data from log block to cache block and persist
+6. delete log and persist
 
 ## lab10 mmap
 Map the file into the userspace,no need to get into the kernel state unless there is a page fault.
